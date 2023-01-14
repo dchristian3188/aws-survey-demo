@@ -12,11 +12,23 @@ export class SurveyDemo extends cdk.Stack {
     super(scope, id, props);
 
 
+
+    //Cognito User Pools
+    const stackID = cdk.Stack.of(this).stackName.split("-")[3]
     const surveyUserPool = new cognito.UserPool(this, 'survey-UserPool');
+    
+    surveyUserPool.addDomain("surveys",{
+      cognitoDomain: {
+        domainPrefix: "surveys-" + stackID 
+      }
+    })
+
+ 
+    //Cognito Identity Pool Setup 
     const surveyIdentityPool = new cognito.CfnIdentityPool(this, 'survey-IdentityPool', {
       allowUnauthenticatedIdentities: false,
       cognitoIdentityProviders: []
-    })
+    })  
 
     const surveyAdminUserRole = new iam.Role(this, "survey-AdminUserRole", {
       assumedBy:
@@ -28,18 +40,36 @@ export class SurveyDemo extends cdk.Stack {
         }, "sts:AssumeRoleWithWebIdentity")
     });
 
-    const esRole = new iam.Role(this, "survey-EsRole", {
-      assumedBy: new iam.ServicePrincipal('es.amazonaws.com'),
-      managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonESCognitoAccess")]
-    });
+    surveyAdminUserRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonOpenSearchServiceFullAccess"))
 
+    const surveyIdentityPoolAttachment = new cognito.CfnIdentityPoolRoleAttachment(this,'Survey-IdentityPoolAttachment',{
+      identityPoolId: surveyIdentityPool.ref,
+      roles:{
+        'authenticated': surveyAdminUserRole.roleArn
+      }
+    })
+
+    // Cognito Groups and Roles
+    const opensearchRole = new iam.Role(this, "survey-EsRole", {
+      assumedBy: new iam.ServicePrincipal('es.amazonaws.com'),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonOpenSearchServiceCognitoAccess")
+      ]});
+
+    const surveyCognitoAdminGroup = new cognito.CfnUserPoolGroup(this,"survey-CognitoAdminGroup",{
+      userPoolId: surveyUserPool.userPoolId,
+      groupName: "opensearch-admin",
+      roleArn: surveyAdminUserRole.roleArn
+    })
+
+    //Opensearch
     const surveyDomain = new opensearch.Domain(this, 'survey-Domain', {
-      domainName: "Surveys",
+      domainName: "surveys",
       version: opensearch.EngineVersion.OPENSEARCH_1_3,
       enableVersionUpgrade: true,
       cognitoDashboardsAuth: {
         identityPoolId: surveyIdentityPool.ref,
-        role: esRole,
+        role: opensearchRole,
         userPoolId: surveyUserPool.userPoolId
       }
     })
