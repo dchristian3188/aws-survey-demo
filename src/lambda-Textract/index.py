@@ -2,9 +2,11 @@ import textractcaller as tc
 import trp.trp2 as t2
 from trp import Document
 import boto3
-
+import base64
+import json
 
 textract = boto3.client('textract', region_name='us-east-2')
+Kinesisstream = boto3.client('firehose')
 
 
 def invokeTextract():
@@ -43,8 +45,11 @@ def invokeQuery():
         if query_answers:
             for answer in query_answers:
                 entities[answer[1]] = answer[2]
-                
-    print(entities)
+
+
+    recordBytes = base64.encode(str(json.dumps(response)))
+    Kinesisstream.put_record_batch(DeliveryStreamName="SurveyDemoStack-surveyKinesisFirehose-GtK4n6dTP0NX",
+                                                   Records=recordBytes)
     
 
 def handler(event, context):
@@ -53,3 +58,5 @@ def handler(event, context):
         'statusCode': 200,
         'body': invokeQuery()
     }
+
+invokeQuery()

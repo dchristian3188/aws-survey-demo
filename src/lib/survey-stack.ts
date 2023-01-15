@@ -63,7 +63,7 @@ export class SurveyDemo extends cdk.Stack {
     })
 
     //Opensearch
-    const surveyDomain = new opensearch.Domain(this, 'survey-Domain', {
+    const surveyOpensearchDomain = new opensearch.Domain(this, 'survey-Domain', {
       domainName: "surveys",
       version: opensearch.EngineVersion.OPENSEARCH_1_3,
       enableVersionUpgrade: true,
@@ -74,16 +74,72 @@ export class SurveyDemo extends cdk.Stack {
       }
     })
 
+    // S3
     const surveyBucket = new cdk.aws_s3.Bucket(this, 'survey-Bucket', {})
 
+    // Lambda
     const surveyLambda = new PythonFunction(this, "survey-TextractLambda", {
       entry: "./lambda-Textract",
       runtime: lambda.Runtime.PYTHON_3_9,
       timeout: cdk.Duration.seconds(15)
     })
 
+    //TODO can we scope these ?
     surveyLambda.role?.addManagedPolicy(cdk.aws_iam.ManagedPolicy.fromManagedPolicyArn(this, "TextractManagedPolicy", "arn:aws:iam::aws:policy/AmazonTextractFullAccess"))
     surveyLambda.role?.addManagedPolicy(cdk.aws_iam.ManagedPolicy.fromManagedPolicyArn(this, "S3ManagedPolicy", "arn:aws:iam::aws:policy/AmazonS3FullAccess"))
+
+    // Kinesis
+    const surveyKinesisStream = new cdk.aws_kinesis.Stream(this,"survey-KinesisStream",{})
+
+    // Kinesis Firehose Role
+    const surveyKinesisFirehoseRole = new iam.Role(this,"survey-KinesisFirehoseRole",{
+      assumedBy: new iam.ServicePrincipal('firehose.amazonaws.com')
+    })
+
+    surveyKinesisFirehoseRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions:["es:*"],
+        resources:["*"]
+      })
+    )
+
+    surveyKinesisFirehoseRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions:["kinesis:*"],
+        resources:[surveyKinesisStream.streamArn]
+      })
+    )
+
+    surveyKinesisFirehoseRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions:["s3:*"],
+        resources:[
+          surveyBucket.bucketArn,
+          `${surveyBucket.bucketArn}/*`
+        ]
+      })
+    )
+
+    // Kinesis Firehose to tie data stream and opensearch together
+     const surveyKinesisFirehose = new cdk.aws_kinesisfirehose.CfnDeliveryStream(this,"survey-KinesisFirehose",{
+       kinesisStreamSourceConfiguration: {
+         kinesisStreamArn: surveyKinesisStream.streamArn,
+         roleArn: surveyKinesisFirehoseRole.roleArn
+       },
+       amazonopensearchserviceDestinationConfiguration:{
+        domainArn: surveyOpensearchDomain.domainArn,
+        indexName: "surveys",
+        indexRotationPeriod: "NoRotation",
+        s3Configuration:{
+          bucketArn: surveyBucket.bucketArn,
+          prefix: "kinesis-firehose-errors/",
+          roleArn: surveyKinesisFirehoseRole.roleArn
+        },
+        roleArn: surveyKinesisFirehoseRole.roleArn
+       }
+   })
+
+
 
     const surveyDynamoDB = new cdk.aws_dynamodb.Table(this, 'survey-Questions', {
       partitionKey: {
