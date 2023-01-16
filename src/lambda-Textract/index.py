@@ -4,9 +4,63 @@ from trp import Document
 import boto3
 import base64
 import json
+import logging
+from botocore.exceptions import ClientError
 
-textract = boto3.client('textract', region_name='us-east-2')
-Kinesisstream = boto3.client('firehose')
+logger = logging.getLogger(__name__)
+
+
+textract = boto3.client('textract')
+kinesis = boto3.client('kinesis')
+firehose = boto3.client('firehose')
+
+
+# def put_record(kinesis_client, stream, data, partition_key):
+#     """
+#     Puts data into the stream. The data is formatted as JSON before it is passed
+#     to the stream.
+
+#     :param kinesis_client: boto3 Kinesis client
+#     :param stream: name of the Kinesis stream
+#     :param data: The data to put in the stream.
+#     :param partition_key: The partition key to use for the data.
+#     :return: Metadata about the record, including its shard ID and sequence number.
+#     """
+#     try:
+#         response = kinesis_client.put_record(
+#             StreamName=stream,
+#             Data=json.dumps(data),
+#             PartitionKey=partition_key)
+#         logger.info("Put record in stream %s.", stream)
+#     except ClientError:
+#         logger.exception("Couldn't put record in stream %s.", stream)
+#         raise
+#     else:
+#         return response
+
+
+def put_record(firehose, stream, data):
+    """
+    Puts data into the stream. The data is formatted as JSON before it is passed
+    to the stream.
+
+    :param firehose: boto3 firehose client
+    :param stream: name of the firehose stream
+    :param data: The data to put in the stream.
+    :return: Metadata about the record, including its shard ID and sequence number.
+    """
+    try:
+        response = firehose.put_record(
+            DeliveryStreamName=stream,
+            Record= {
+                'Data': json.dumps(data)
+            })
+        logger.info("Put record in stream %s.", stream)
+    except ClientError:
+        logger.exception("Couldn't put record in stream %s.", stream)
+        raise
+    else:
+        return response
 
 
 def invokeTextract():
@@ -46,11 +100,8 @@ def invokeQuery():
             for answer in query_answers:
                 entities[answer[1]] = answer[2]
 
+    return entities
 
-    recordBytes = base64.encode(str(json.dumps(response)))
-    Kinesisstream.put_record_batch(DeliveryStreamName="SurveyDemoStack-surveyKinesisFirehose-GtK4n6dTP0NX",
-                                                   Records=recordBytes)
-    
 
 def handler(event, context):
 
@@ -59,4 +110,8 @@ def handler(event, context):
         'body': invokeQuery()
     }
 
-invokeQuery()
+results = invokeQuery()
+
+#response = put_record(kinesis,"SurveyDemoStack-surveyKinesisStream8042F8C3-VjS6Alb9r3C8",results,"surveys")
+response = put_record(firehose,"SurveyDemoStack-surveyKinesisFirehose-qR8lWUQB1LAR",results)
+print(response)

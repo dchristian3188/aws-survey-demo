@@ -135,8 +135,11 @@ export class SurveyDemo extends cdk.Stack {
           prefix: "kinesis-firehose-errors/",
           roleArn: surveyKinesisFirehoseRole.roleArn
         },
-        roleArn: surveyKinesisFirehoseRole.roleArn
-       }
+        roleArn: surveyKinesisFirehoseRole.roleArn,
+        cloudWatchLoggingOptions: {
+          enabled: true
+        }
+       },
    })
 
 
