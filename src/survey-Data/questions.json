@@ -1,0 +1,21 @@
+[
+    {
+        "ID": "survey",
+        "Questions": {
+            "Queries": [
+                {
+                    "text": "Informative?",
+                    "alias": "Informative"
+                },
+                {
+                    "text": "Please rate the quality of the service you received from your server",
+                    "alias": "Server"
+                },
+                {
+                    "text": "Please rate the quality of your beverage.",
+                    "alias": "Drink"
+                }
+            ]
+        }
+    }
+]
