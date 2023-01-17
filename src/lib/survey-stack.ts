@@ -1,10 +1,12 @@
 import * as cdk from 'aws-cdk-lib';
+import * as path from 'path';
 import { aws_opensearchservice as opensearch } from 'aws-cdk-lib';
-import { PythonFunction, PythonLayerVersion } from '@aws-cdk/aws-lambda-python-alpha';
+import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
 import { aws_lambda as lambda } from 'aws-cdk-lib';
 import { aws_cognito as cognito } from 'aws-cdk-lib';
 import { aws_iam as iam } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
+import { DynamoDBSeeder, Seeds } from '@cloudcomponents/cdk-dynamodb-seeder';
 
 
 export class SurveyDemo extends cdk.Stack {
@@ -14,7 +16,7 @@ export class SurveyDemo extends cdk.Stack {
 
 
     //Cognito User Pools
-    const stackID = cdk.Stack.of(this).stackName.split("-")[3]
+    const stackID = cdk.Stack.of(this).stackName.split("-")[3] //TODO This doesnt work
     const surveyUserPool = new cognito.UserPool(this, 'survey-UserPool');
     
     surveyUserPool.addDomain("surveys",{
@@ -144,12 +146,17 @@ export class SurveyDemo extends cdk.Stack {
 
 
 
-    const surveyDynamoDB = new cdk.aws_dynamodb.Table(this, 'survey-Questions', {
+    const surveyDynamoDBTable = new cdk.aws_dynamodb.Table(this, 'survey-Questions', {
       partitionKey: {
-        name: "id",
+        name: "ID",
         type: cdk.aws_dynamodb.AttributeType.STRING
       }
     })
+
+    const surveyDynamoDBSeeder = new DynamoDBSeeder(this,"surveyDynamoDBSeeder",{
+        table: surveyDynamoDBTable,
+        seeds: Seeds.fromJsonFile(path.join(__dirname, '..', 'survey-Data/questions.json'))
+      })
 
     new cdk.CfnOutput(this, 'bucketName', {
       value: surveyBucket.bucketName,

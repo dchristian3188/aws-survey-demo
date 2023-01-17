@@ -11,44 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 textract = boto3.client('textract')
-kinesis = boto3.client('kinesis')
 firehose = boto3.client('firehose')
 
 
-# def put_record(kinesis_client, stream, data, partition_key):
-#     """
-#     Puts data into the stream. The data is formatted as JSON before it is passed
-#     to the stream.
-
-#     :param kinesis_client: boto3 Kinesis client
-#     :param stream: name of the Kinesis stream
-#     :param data: The data to put in the stream.
-#     :param partition_key: The partition key to use for the data.
-#     :return: Metadata about the record, including its shard ID and sequence number.
-#     """
-#     try:
-#         response = kinesis_client.put_record(
-#             StreamName=stream,
-#             Data=json.dumps(data),
-#             PartitionKey=partition_key)
-#         logger.info("Put record in stream %s.", stream)
-#     except ClientError:
-#         logger.exception("Couldn't put record in stream %s.", stream)
-#         raise
-#     else:
-#         return response
-
-
 def put_record(firehose, stream, data):
-    """
-    Puts data into the stream. The data is formatted as JSON before it is passed
-    to the stream.
-
-    :param firehose: boto3 firehose client
-    :param stream: name of the firehose stream
-    :param data: The data to put in the stream.
-    :return: Metadata about the record, including its shard ID and sequence number.
-    """
     try:
         response = firehose.put_record(
             DeliveryStreamName=stream,

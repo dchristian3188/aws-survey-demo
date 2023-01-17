@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@aws-cdk/aws-lambda-python-alpha": "^2.60.0-alpha.0",
+    "@cloudcomponents/cdk-dynamodb-seeder": "^2.1.0",
     "aws-cdk-lib": "2.60.0",
     "constructs": "^10.0.0",
     "source-map-support": "^0.5.21"
