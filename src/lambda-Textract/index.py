@@ -2,9 +2,31 @@ import textractcaller as tc
 import trp.trp2 as t2
 from trp import Document
 import boto3
+import base64
+import json
+import logging
+from botocore.exceptions import ClientError
+
+logger = logging.getLogger(__name__)
 
 
-textract = boto3.client('textract', region_name='us-east-2')
+textract = boto3.client('textract')
+firehose = boto3.client('firehose')
+
+
+def put_record(firehose, stream, data):
+    try:
+        response = firehose.put_record(
+            DeliveryStreamName=stream,
+            Record= {
+                'Data': json.dumps(data)
+            })
+        logger.info("Put record in stream %s.", stream)
+    except ClientError:
+        logger.exception("Couldn't put record in stream %s.", stream)
+        raise
+    else:
+        return response
 
 
 def invokeTextract():
@@ -43,9 +65,9 @@ def invokeQuery():
         if query_answers:
             for answer in query_answers:
                 entities[answer[1]] = answer[2]
-                
-    print(entities)
-    
+
+    return entities
+
 
 def handler(event, context):
 
@@ -53,3 +75,9 @@ def handler(event, context):
         'statusCode': 200,
         'body': invokeQuery()
     }
+
+results = invokeQuery()
+
+#response = put_record(kinesis,"SurveyDemoStack-surveyKinesisStream8042F8C3-VjS6Alb9r3C8",results,"surveys")
+response = put_record(firehose,"SurveyDemoStack-surveyKinesisFirehose-qR8lWUQB1LAR",results)
+print(response)
