@@ -12,8 +12,12 @@
                     "alias": "Server"
                 },
                 {
-                    "text": "Please rate the quality of your beverage.",
+                    "text": "Please rate the quality of your beverage",
                     "alias": "Drink"
+                },
+                {
+                    "text": "Do you plan to return to our restaurant",
+                    "alias": "WillReturn"
                 }
             ]
         }
