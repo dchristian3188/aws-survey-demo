@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import * as path from 'path';
+import { Fn } from 'aws-cdk-lib';
 import { aws_opensearchservice as opensearch } from 'aws-cdk-lib';
 import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
 import { aws_lambda as lambda } from 'aws-cdk-lib';
@@ -10,22 +11,26 @@ import { aws_s3_notifications as s3notifications } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { DynamoDBSeeder, Seeds } from '@cloudcomponents/cdk-dynamodb-seeder';
 
+export interface SurveyDemoProps {
+  Prefix: string
+}
 
 
 export class SurveyDemo extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, surveyProps: SurveyDemoProps, props?: cdk.StackProps) {
     super(scope, id, props);
 
 
 
     //Cognito User Pools
-    //const stackID = cdk.Stack.of(this).stackId.split("-").pop(); //TODO This doesnt work
-    const stackID = "undefined"
     const surveyUserPool = new cognito.UserPool(this, 'survey-UserPool');
+
+    // get a unique suffix from the last element of the stackId, e.g. 06b321d6b6e2
+    const suffix = Fn.select(4, Fn.split("-", Fn.select(2, Fn.split("/", this.stackId))));
 
     surveyUserPool.addDomain("surveys", {
       cognitoDomain: {
-        domainPrefix: "surveys-" + stackID
+        domainPrefix: (surveyProps.Prefix + "-" + suffix)
       }
     })
 
@@ -71,7 +76,7 @@ export class SurveyDemo extends cdk.Stack {
 
     //Opensearch
     const surveyOpensearchDomain = new opensearch.Domain(this, 'survey-Domain', {
-      domainName: "surveys",
+      domainName: surveyProps.Prefix,
       version: opensearch.EngineVersion.OPENSEARCH_1_3,
       enableVersionUpgrade: true,
       cognitoDashboardsAuth: {
@@ -178,5 +183,16 @@ export class SurveyDemo extends cdk.Stack {
       description: "Bucket to upload surveys to",
       exportName: 'surveyBucket'
     })
+
+    new cdk.CfnOutput(this, 'createUserUrl', {
+      description: "Create a new user in the user pool here",
+      value: "https://" + this.region + ".console.aws.amazon.com/cognito/users?region=" + this.region + "#/pool/" + surveyUserPool.userPoolId + "/users"
+    });
+
+    new cdk.CfnOutput(this, 'opensearchUrl', {
+      description: "Access OpenSearch via this URL.",
+      value: "https://" + surveyOpensearchDomain.domainEndpoint + "/_dashboards"
+    });
+
   }
 }

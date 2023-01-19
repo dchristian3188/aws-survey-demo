@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { SurveyDemo } from '../lib/survey-stack';
+import { SurveyDemo, SurveyDemoProps } from '../lib/survey-stack';
 
 const app = new cdk.App();
-new SurveyDemo(app, 'SurveyDemoStack', {
+
+const StackCustomizations = <SurveyDemoProps> {
+  Prefix: "survey" //must be lower case
+}
+
+new SurveyDemo(app, 'SurveyDemoStack',StackCustomizations, {
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,
    * but a single synthesized template can be deployed anywhere. */
