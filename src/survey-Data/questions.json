@@ -4,20 +4,52 @@
         "Questions": {
             "Queries": [
                 {
-                    "text": "Informative?",
-                    "alias": "Informative"
+                    "text": "Please rate the quality of the service you received from your host",
+                    "alias": "Host"
                 },
                 {
                     "text": "Please rate the quality of the service you received from your server",
                     "alias": "Server"
                 },
                 {
+                    "text": "Courteous?",
+                    "alias": "Courteous"
+                },
+                {
+                    "text": "Informative?",
+                    "alias": "Informative"
+                },
+                {
+                    "text": "Prompt and efficient?",
+                    "alias": "Prompt"
+                },
+                {
+                    "text": "Please rate the quality of your entree",
+                    "alias": "Entree"
+                },
+                {
                     "text": "Please rate the quality of your beverage",
-                    "alias": "Drink"
+                    "alias": "Beverage"
+                },
+                {
+                    "text": "Was our restaurant clean",
+                    "alias": "Clean"
+                },
+                {
+                    "text": "How frequently do you visit our restaurant",
+                    "alias": "Frequency"
                 },
                 {
                     "text": "Do you plan to return to our restaurant",
                     "alias": "WillReturn"
+                },
+                {
+                    "text": "Would you recommend our restaurant to a friend",
+                    "alias": "Recommend"
+                },
+                {
+                    "text": "Why, or why not?",
+                    "alias": "Why"
                 }
             ]
         }
